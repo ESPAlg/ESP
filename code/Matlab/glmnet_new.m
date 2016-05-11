@@ -7,7 +7,7 @@ function [Yhat,acc,acc_train,name,beta,CVerr] = glmnet_new( X,Y,p,varargin)
     %%
     beta = [];CVerr = [];
     if(p==1)
-        Yhat = Y;   acc  = 1;    acc_train=1;name   = 'OPTIMAL';
+        Yhat = Y;   acc  = 1;    acc_train=1;name   = 'ORACLE';
         CVerr.train_ind      = 1:size(Y,1);
         CVerr.test_ind       = [];
         return;
@@ -18,7 +18,7 @@ function [Yhat,acc,acc_train,name,beta,CVerr] = glmnet_new( X,Y,p,varargin)
         return;
     else
         %name = ['EST-',num2str(p)];
-        name = ['EST'];
+        name = ['ESP'];
     end
     
     
@@ -91,8 +91,12 @@ function [Yhat,acc,acc_train,name,beta,CVerr] = glmnet_new( X,Y,p,varargin)
     %% 
     option = glmnetSet;
     option.alpha = opt.alpha;
+    modelling_time = tic;
     CVerr= cvglmnet(trainX,trainY(:),10,[],'response','gaussian',option,0);    
+    modelling_time = toc(modelling_time);
+    testing_time = tic;
     yhat = glmnetPredict(CVerr.glmnet_object,'link', testX, CVerr.lambda_min);
+    fprintf('modelling time = %f, testing_time = %f\n',modelling_time, toc(testing_time));
     Yhat = glmnetPredict(CVerr.glmnet_object,'link', xtmphat, CVerr.lambda_min);
     yhat = reshape(yhat,size(testY));
     Yhat = reshape(Yhat,size(Y));

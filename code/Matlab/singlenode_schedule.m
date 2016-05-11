@@ -31,8 +31,10 @@ for i = 1:N
     main_itr_loop = tic;
     %% EST
     Y_rnd = normrnd_sp(Y, Yerror); 
+    
     for j = 1:length(pp)   
         % Samples
+        est_time_tic = tic;
         NumSamples = 0;
         for ii = 1:length(Y_rnd)
             p = pp(j);
@@ -42,36 +44,43 @@ for i = 1:N
                     p = 0.7;
                 case 2
                     p = 0.4;
+                case 3
+                    p = 0.1;
+                case 4
+                    p = 0.04;
                 otherwise
-                    p = 0.2;    
+                    p = 0.01;    
                 end
             end
             NumSamples=NumSamples+p*size(Y_rnd{ii},1);
-            [Yhat{ii},acc(ii),acc_est(ii) ,name,~,~ ] = glmnet_new(...
-                X{ii}, Y_rnd{ii}, p,'model',opt.model);
-            if(opt.display==1)
+            [Yhat{ii},acc(ii),acc_est(ii) ,name,~,~ ] = glmnet_new( X{ii}, Y_rnd{ii}, p,'model',opt.model,'var_sel',0);
+           if(opt.display==1)
                 fprintf('p = %5.2f, multi-%d, acc_est = %5.2f, acc_train = %5.2f \n',...
                     p,ii+1,acc(ii),acc_est(ii));
             end
         end
+        fprintf('p = %f\n',pp(j));
+        fprintf('est_time = %f\n',toc(est_time_tic));
+        lp_time_tic = tic;
         Schedule = schedule_cover_controller(Yhat,Y,Yerror, W ,'LLF',...
-            MEM,'name',name,'display',0);   
+            MEM,'name',name,'display',0,'eta',3);   
         Output.EST{j}.sched = Schedule;  timee(i,j) = Schedule.time;
+fprintf('lp_time = %f\n',toc(lp_time_tic));
     end
     Schedule = baseline_general( MEM,Y_rnd, W, 'name', 'MEM');
-    Output.MEM.sched = Schedule;  timee(i,3) = Schedule.time;
+    Output.MEM.sched = Schedule;  timee(i,4) = Schedule.time;
     
     Schedule = baseline_general( IPC,Y_rnd, W, 'name', 'IPC');
-    Output.IPC.sched = Schedule;   timee(i,4) = Schedule.time;
+    Output.IPC.sched = Schedule;   timee(i,5) = Schedule.time;
     
     Schedule = baseline_general( L3R,Y_rnd, W, 'name', 'L3R');
-    Output.L3R.sched = Schedule;    timee(i,5) = Schedule.time;
+    Output.L3R.sched = Schedule;    timee(i,6) = Schedule.time;
     
     Schedule = baseline_general( randperm(m),Y_rnd, W, 'name','RND');
-    Output.RND.sched = Schedule;    timee(i,6) = Schedule.time; 
+    Output.RND.sched = Schedule;    timee(i,7) = Schedule.time; 
     if(opt.display==1)
         fprintf('i = %d -- OPT = %.0f, EST = %.0f, MEM = %.0f, IPC = %.0f, L3R = %.0f, RND = %.0f \n',...
-        i, timee(i,1),timee(i,2),timee(i,3),timee(i,4),timee(i,5),timee(i,6));
+        i, timee(i,1),timee(i,2),timee(i,4),timee(i,5),timee(i,6),timee(i,7));
     end
        
     toc(main_itr_loop)
