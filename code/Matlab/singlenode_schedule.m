@@ -1,3 +1,13 @@
+% parallel scheduling with queue of jobs
+% Example run:
+% a) [ Output ] = singlenode_schedule(); % Function would run with default options.
+% 
+% b) [ Output ] = singlenode_schedule('k',4,'N',15,'display');
+% Options:  k      - Maximum number of applications that can be scheduled together.
+%           Nproc  - Number of processors
+%           N      - Number of runs of the algorithm
+%           Nqueue - Number of jobs in the queue
+%           display- 0 to hide display, 1 to print output.
 function [ Output ] = singlenode_schedule(varargin)
 format bank;
 addpath('../MatlabCommon/','../MatlabCommon/export_fig-master/','../../packages/glmnet_matlab');

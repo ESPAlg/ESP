@@ -1,7 +1,7 @@
 # ESP: A Statistical Approach to Predicting Application Interference
 
 ##Data
-The data can be downloaded from [here](https://www.dropbox.com/s/oclk8lqn60afw9f/tmp.zip?dl=0). The file is quite large. The path to the data should be put in the [tmp_path.m](https://github.com/ESPAlg/ESP/blob/master/code/Matlab/tmp_path.m)
+The data can be downloaded from [here](https://www.dropbox.com/s/oclk8lqn60afw9f/tmp.zip?dl=0). The file is quite 78.6 MB. Unzip the file and the path to the data should be put in the [tmp_path.m](https://github.com/ESPAlg/ESP/blob/master/code/Matlab/tmp_path.m)
 
 ##Code
 The source code is [here](https://github.com/ESPAlg/ESP/tree/master/code). Here are some notes on the code:

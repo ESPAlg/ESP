@@ -1,5 +1,13 @@
 % parallel scheduling with queue of jobs
-
+% Example run:
+% a) [ Output ] = parallel_schedule_combb(); % Function would run with default options.
+% 
+% b) [ Output ] = parallel_schedule_combb('k',4,'Nproc',4,'N',2,'Nqueue',40,'display',0);
+% Options:  k      - Maximum number of applications that can be scheduled together.
+%           Nproc  - Number of processors
+%           N      - Number of runs of the algorithm
+%           Nqueue - Number of jobs in the queue
+%           display- 0 to hide display, 1 to print output.
 function [ Output ] = parallel_schedule_combb(varargin)
 format bank;
 addpath('../MatlabCommon/','../../packages/glmnet_matlab');
