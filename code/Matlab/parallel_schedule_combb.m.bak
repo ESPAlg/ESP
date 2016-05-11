@@ -13,7 +13,7 @@ format bank;
 addpath('../MatlabCommon/','../../packages/glmnet_matlab');
 filename = Create_BM();
 opt     = propertylist2struct(varargin{:});
-opt     = set_defaults(opt, 'plot',0,'display',1,'combb',1,'k',4,'Nproc',4,'N',1,'Nqueue',40);
+opt     = set_defaults(opt, 'plot',0,'display',1,'combb',1,'k',4,'Nproc',4,'N',1,'Nqueue',5);
    
 % Options
 m           = length(filename);
@@ -53,7 +53,7 @@ for i = 1:N
     queue.W = 100*ones(Nqueue,1);
     for ii = 1:length(Y); Y_rnd{ii} = max(normrnd(Y{ii},Yerror{ii}*2),0); end    
     RND = randperm(m);  
-    %% ESP
+    %% EST
     for j = 1:length(pp)   
         % Samples
         NumSamples = 0;
@@ -103,11 +103,118 @@ for i = 1:N
     max_load(i,:,:)= [max(t1);max(t2);max(t3);max(t4);max(t5);max(t6)];
     load_imbalance(i,:,:) = [max(t1)-min(t1);max(t2)-min(t2);max(t3)-min(t3);...
                       max(t4)-min(t4);max(t5)-min(t5);max(t6)-min(t6)];
+    
+%     t3 = Output.MEM.progress';t4 = Output.IPC.progress';t5 = Output.L3R.progress'; t6 = Output.RND.progress';
+%     fprintf('MEM-%5.2f, IPC-%5.2f, L3R-%5.2f, RND-%5.2f, time: %5.2f \n',...
+%         max(t3(end,:)),max(t4(end,:)),max(t5(end,:)),max(t6(end,:)),toc(main_itr_loop) );
+%     if(max(t3(end,:))>5000 || max(t3(end,:))>5000 || max(t3(end,:)) >5000 || max(t3(end,:))>5000)
+%         namess = names(k,'combb',1);
+%         tmp_sched   = Output.MEM.sched{1}.schedule;
+%         tmp_indices = find(tmp_sched~=0);
+%         tmp_rate    = [ones(1,m),sum(Output.MEM.sched{1}.rate{1,1},2)',sum(Output.MEM.sched{1}.rate{1,2},2)',sum(Output.MEM.sched{1}.rate{1,3},2)'];
+%         subplot(2,1,1);
+%         plot(tmp_sched(tmp_indices));
+%         subplot(2,1,2);
+%         plot(tmp_rate(tmp_indices));
+%         
+%         
+%         tmp_name2 = names(2,'combb',1); tt2 = tmp_name2(sum(Y{1,1},2)<0.5,:);
+%         tmp_name3 = names(3,'combb',1); tt3 = tmp_name3(sum(Y{1,2},2)<0.5,:);
+%         tmp_name4 = names(4,'combb',1); tt4 = tmp_name4(sum(Y{1,3},2)<0.5,:);
+%     end
 end
 Output.timee = timee;
 Output.max_load = max_load;
 Output.load_imbalance = load_imbalance;
+if(opt.plot==1)
+%     for i = 1:Nprocessors
+%         figure(i);
+%         subplot(3,2,1);drawSchedule_general(Output.EST{1}.sched{i},'combb',1);
+%         subplot(3,2,2);drawSchedule_general(Output.EST{2}.sched{i},'combb',1);
+%         subplot(3,2,3);drawSchedule_general(Output.MEM.sched{i},'combb',1);
+%         subplot(3,2,4);drawSchedule_general(Output.IPC.sched{i},'combb',1);
+%         subplot(3,2,5);drawSchedule_general(Output.L3R.sched{i},'combb',1);
+%         subplot(3,2,6);drawSchedule_general(Output.RND.sched{i},'combb',1);
+%     end
+    if(N>1)
+        close all;figure;
+        hold on
+        %bar(1:6, mean(timee)','FaceColor',[0 .5 .5],'EdgeColor',[0 .9 .9],'LineWidth',1.5);
+        bar(1:6, mean(timee)');
+        errorbar(1:6,mean(timee)', sqrt(var(timee))','.k');
+        set(gca,'fontsize',13);
+        xlabel('Maximum permissible group size');
+        ylabel('Scheduling Time (in seconds)');
+        set(gca,'xtick', 1:6); 
+        set(gca,'xticklabel', {'ORACLE', 'EST', 'MEM','IPC','L3R','RND'}); 
+        grid on;
+        hold off
+        %export_fig ../../osdi/figures/parallel_schedule_combb_bar.pdf -transparent -painters
+    end
+    
+    figure;
+    ylimm = max(max([Output.EST{1}.progress,Output.EST{2}.progress,Output.MEM.progress,Output.RND.progress]));
+    subplot(1,4,1);processPlot(Output.EST{1}, ylimm);
+    subplot(1,4,2);processPlot(Output.EST{2}, ylimm);
+    subplot(1,4,3);processPlot(Output.MEM, ylimm);
+    subplot(1,4,4);processPlot(Output.RND, ylimm);
+    %export_fig ../../osdi/figures/parallel_schedule_combb.pdf -transparent -painters
+%%
+    close all;figure;
+    hold on;
+    
+    
+    t1 = Output.EST{1}.progress';t2 = Output.EST{2}.progress';t3 = Output.MEM.progress';
+    t4 = Output.IPC.progress';t5 = Output.L3R.progress'; t6 = Output.RND.progress';
+    
+    max_load= [max(t1);max(t2);max(t3);max(t4);max(t5);max(t6)];
+    load_imbalance = [max(t1)-min(t1);max(t2)-min(t2);max(t3)-min(t3);...
+                      max(t4)-min(t4);max(t5)-min(t5);max(t6)-min(t6)];
+    
+%     stairs(max_load,'LineWidth',2);
+%     set(gca,'fontsize',13);
+%     xlabel('Number of jobs processed');
+%     ylabel('Scheduling Time (in Seconds)');
+%     legend({'OPT', 'EST', 'MEM','IPC','L3R','RND'});
+%     %legend(procname,'Location','NorthWest');
+%     ylim([0 ylimm]);
+    
+   sched_color = brewermap(8,'BrBG');
+sched_color([3,4],:)=[];
+close all;
+    A = max_load(:,(1:4)*10)';
+    C = load_imbalance(:,(1:4)*10)';
+    B = zeros(size(A));
+    barweb(C,B,[],num2cell(10:10:40),[], [], [], sched_color);
+    set(gca,'fontsize',13);
+    legend({'OPT', 'EST', 'MEM','IPC','L3R','RND'});
+    xlabel('Number of jobs processed');
+    ylabel('Scheduling Time (in seconds)');
+    grid on;
+    
 end
+end
+
+function [] = processPlot(output,ylimm)
+    Nprocessors = size(output.progress,2);
+    procname = {};
+    for i = 1:Nprocessors
+        procname{i}=['processor-',num2str(i)];
+    end
+    
+    progress = output.progress;
+    namee    = output.sched{1}.name;
+    timee    = max(progress(end,:));
+    %stairs(progress,'LineWidth',2,'Marker','d','MarkerFaceColor','c');
+    stairs(progress,'LineWidth',2);
+    set(gca,'fontsize',13);
+    title([namee,'-(',sprintf('%.0f ', timee),' s)']);
+    xlabel('Number of jobs processed');
+    ylabel('Scheduling Time (in Seconds)');
+    legend(procname,'Location','NorthWest');
+    ylim([0 ylimm]);
+end
+% W - which processor is doing how much work for each app
 
 
 function [Schedule,progress] = sched_cover_multi( queue, Y_rnd, Yhat, Nprocessors, varargin )
@@ -129,7 +236,16 @@ function [Schedule,progress] = sched_cover_multi( queue, Y_rnd, Yhat, Nprocessor
         % the one with minimum time so far, but its unrealistic since we do
         % not know the future scheduling time.
         
-        if(strcmp(opt.name,'ESP') || strcmp(opt.name,'ORACLE'))
+        % case 1
+%         min_proc     = zeros(Nprocessors,1);
+%         for k = 1: Nprocessors
+%             if(isfield(Schedule{k},'time'));min_proc(k) = Schedule{k}.time;end
+%         end
+%         index = find(min_proc==min(min_proc),1);
+
+        % case 2 we see future for EST only
+        
+        if(strcmp(opt.name,'EST') || strcmp(opt.name,'OPTIMAL'))
             % Find which mahcine gives the smallest schedule when we add
             % the application.
             for i = 1:Nprocessors
@@ -351,4 +467,150 @@ else
 end
 end
 
+% baseline_general - Computes the baseline schedule where we sort applications based on
+% LLF and the top and bottom are run together.
+%
+% Syntax
+%  function [Schedule] = baseline_general2(LLF, Y_rnd, W, <opt>)
+%
+%  inputs:
+%    LLF:   - vector with low level feature like memory, l3requests for each application
+%    Y_rnd: - structure containing performance for pairs, triplets and so on
+%    W:     - work that needs to be finished for each application
+%    varargin: opt
+%        * verbose - display argument 0 or 1
+%  output
+%    Schedule - schedule output
+% See also: schedule_cover, main_general
 
+% function [Schedule ] = baseline_general( LLF, Y_rnd, W, varargin )
+% 
+% opt = propertylist2struct(varargin{:});
+% opt = set_defaults(opt,  'tol', 1e-3, 'display',0,'maxiter',2000, 'name','Not given','combb',0,'queue',[]);
+%  
+% m      = length(W);
+% [~,b]  = sort(LLF); 
+% k      = length(Y_rnd)+1;
+% 
+% b(W(b)<opt.tol)=[];
+% 
+% if(~isempty(opt.queue))
+%     tt=1;
+%     llf_extn = LLF(opt.queue.app_queue);
+%     work_extn = opt.queue.W;
+%     [~,b]  = sort(llf_extn); 
+%     W = work_extn(b);
+%     b = opt.queue.app_queue(b);
+%     
+% end
+% for i = 1:k;   
+%     if(opt.combb==0)
+%         sz = nchoosek(m,i);
+%     else
+%         sz = length(combbb(1:m,i));
+%     end
+%     schedule{i}      = zeros(sz,1); 
+% end
+% 
+% Schedule = set_defaults([],'name',opt.name,'work_done_total',sum(W),'work_done',W);
+% Wheel    = set_defaults([],'app_order',b,'work_rem',W,'time_baseline',0);
+% tt = 1;
+% while(~isempty(Wheel.app_order) )
+%     k               = min(k,length(Wheel.app_order));
+%     if(opt.combb==0)
+%         Structure = nchoosek(1:m,k);
+%     else
+%         Structure = combbb(1:m,k);
+%     end
+%     if k==1
+%         y = ones(m,1);
+%     else
+%         y = Y_rnd{k-1};
+%     end
+%     Wheel.app_group = Wheel.app_order([1:ceil(k/2),(end-floor(k/2)+1):end]);
+%     app_group_old   = Wheel.app_group;
+%     if(isempty(opt.queue))
+%         [Wheel,timee]   = run_wheel( Wheel, y,m,'combb',opt.combb )  ; % work for queuing has different relation
+%     else
+%         [Wheel,timee]   = run_wheel_queue( Wheel, y,m,'combb',opt.combb )  ; % work for queuing has different relation
+%     end
+%     schedule{k}(ismember(Structure,sort(app_group_old),'rows')) = timee;
+% end
+% 
+% tmp = [];   
+% for i = 1:(length(Y_rnd)+1);  
+%     tmp = [tmp; schedule{i} ];
+% end
+% Schedule = set_defaults(Schedule,'time',Wheel.time_baseline,'schedule',...
+%                         tmp,'rate',Y_rnd);
+% %schedule_verifier( Schedule, W );
+% end
+% 
+%  function [Wheel, timee] = run_wheel(Wheel,y,m,varargin)
+%     k = length(Wheel.app_group);
+%     opt = propertylist2struct(varargin{:});
+%     opt = set_defaults(opt,  'combb',0);
+% 
+%     if(opt.combb==0)
+%         Structure = nchoosek(1:m,k);
+%     else
+%         Structure = combbb(1:m,k);
+%     end
+%     
+%     [q_sorted,tmp] = sort(Wheel.app_group);
+%     [~,q_order]    = sort(tmp);
+%     speed = y(ismember(Structure,q_sorted,'rows'),:); 
+%     speed = speed(q_order);
+%     
+%     time_group = Wheel.work_rem( Wheel.app_group )./speed';  
+%     timee      = min(time_group);
+%     Wheel.work_rem(Wheel.app_group) = Wheel.work_rem(Wheel.app_group) - timee* speed';
+%     
+%     % remove the apps which finishes 
+%     Wheel.work_rem(abs(Wheel.work_rem)<10^(-6))=0;
+%     app_done_index = find(Wheel.work_rem(Wheel.app_order)==0);
+%     
+%     app_done     = Wheel.app_order(app_done_index)';
+%     for itr=1:length(app_done_index)
+%         Wheel.app_group(Wheel.app_group==Wheel.app_order(app_done_index(itr))) = [];
+%     end
+%     Wheel.app_order(app_done_index)=[];
+%     Wheel.time_baseline = Wheel.time_baseline + timee;
+%     Wheel.app_done = app_done;
+% end
+%  function [Wheel, timee] = run_wheel_queue(Wheel,y,m,varargin)
+%     k = length(Wheel.app_group);
+%     opt = propertylist2struct(varargin{:});
+%     opt = set_defaults(opt,  'combb',0);
+% 
+%     if(opt.combb==0)
+%         Structure = nchoosek(1:m,k);
+%     else
+%         Structure = combbb(1:m,k);
+%     end
+%     
+%     [q_sorted,increasing_app_order] = sort(Wheel.app_group);
+%     [~,q_order]    = sort(increasing_app_order);
+%     speed = y(ismember(Structure,q_sorted,'rows'),:); 
+%     
+%     increasing_app_order
+%     
+%     Wheel.work_rem'
+%     Wheel.app_group
+%     time_group = Wheel.work_rem( increasing_app_order )./speed';  
+%     timee      = min(time_group);
+%     tmp2 = Wheel.work_rem(increasing_app_order) - timee* speed';
+%     Wheel.work_rem = tmp2(q_order);
+%     
+%     % remove the apps which finishes 
+%     Wheel.work_rem(abs(Wheel.work_rem)<10^(-6))=0;
+%     app_done_index = find(Wheel.work_rem==0);
+%     app_done     = Wheel.app_order(app_done_index)';
+%     Wheel.app_order(app_done_index)=[];
+%     Wheel.work_rem(app_done_index)=[];
+%     for itr=1:length(app_done_index)
+%         Wheel.app_group(Wheel.app_group==app_done(itr)) = [];
+%     end
+%     Wheel.time_baseline = Wheel.time_baseline + timee;
+%     
+% end
